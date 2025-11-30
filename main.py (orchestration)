@@ -1,0 +1,73 @@
+"""
+Main orchestrator for the Study Coach agents.
+Runs a demo flow to show how agents interact.
+"""
+import json
+from agents.planner_agent import PlannerAgent
+from agents.doubt_solver_agent import DoubtSolverAgent
+from agents.revision_loop_agent import RevisionLoopAgent
+from agents.memory_agent import MemoryAgent
+from agents.resource_agent import ResourceAgent
+from memory.session_store import SessionStore
+
+
+
+
+def load_demo_inputs(path="examples/demo_inputs.json"):
+with open(path) as f:
+return json.load(f)
+
+
+
+
+def main():
+# Initialize session store and agents
+store = SessionStore()
+memory_agent = MemoryAgent(store)
+planner = PlannerAgent(memory_agent)
+doubt_solver = DoubtSolverAgent()
+revision_loop = RevisionLoopAgent(memory_agent)
+resource_agent = ResourceAgent()
+
+
+# Demo inputs
+inputs = load_demo_inputs()
+
+
+# 1) Planner creates a schedule
+schedule = planner.create_study_plan(
+syllabus=inputs["syllabus"],
+exam_date=inputs["exam_date"],
+available_hours=inputs["available_hours"],
+)
+print("=== Generated Schedule ===")
+print(json.dumps(schedule, indent=2))
+
+
+# 2) User asks a doubt
+question = "Explain the chain rule in calculus with a simple example."
+answer = doubt_solver.answer_question(question)
+print("\n=== Doubt Solver Answer ===")
+print(answer)
+
+
+# 3) Simulate a study session result to record a weak topic
+memory_agent.record_session(topic="chain rule", success=False, notes="Confused about applying to nested functions")
+
+
+# 4) Revision Loop recommends topics for today
+recommendations = revision_loop.recommend_revision(num_topics=3)
+print("\n=== Revision Recommendations ===")
+print(recommendations)
+
+
+# 5) Resource agent fetches supporting material
+resources = resource_agent.search("chain rule tutorial")
+print("\n=== Resource Agent Results (top 3) ===")
+print(resources[:3])
+
+
+
+
+if __name__ == "__main__":
+main()
